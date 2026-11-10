@@ -90,6 +90,9 @@ function Invoke-InRunspacePool {
     built on the runspace API that both editions have. One implementation for both keeps the two
     editions from drifting apart.
 
+    Workers use CreateDefault2 so built-in commands are auto-loaded from modules rather than
+    legacy snap-ins, preserving their CommandInfo.Module metadata as in a normal PowerShell session.
+
     The scriptblock is handed over as text and re-parsed inside the worker runspace, so nothing
     with runspace affinity crosses the boundary. Values reach the worker as named parameters
     rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
@@ -122,7 +125,7 @@ function Invoke-InRunspacePool {
 
     if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
 
-    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
     # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
     # console reaches the same one. Pester's workers are silenced, this is for anything else.
     $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
