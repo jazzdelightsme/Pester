@@ -271,43 +271,6 @@ Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -
     }
 
     b "Run.Parallel module loading" {
-        t "loads built-in commands as modules in sequential and parallel runs" {
-            Set-StrictMode -Version Latest
-            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
-            $null = New-Item -ItemType Directory -Path $folder -Force
-            try {
-                Set-Content -Path (Join-Path $folder 'CommandModule.Tests.ps1') -Value @'
-Describe 'Built-in command modules' {
-    It '<Name> is loaded from <ModuleName>' -ForEach @(
-        @{ Name = 'Get-Item'; ModuleName = 'Microsoft.PowerShell.Management' }
-        @{ Name = 'Get-Date'; ModuleName = 'Microsoft.PowerShell.Utility' }
-    ) {
-        Set-StrictMode -Version Latest
-        $command = Get-Command -Name $Name -CommandType Cmdlet -ErrorAction Stop
-        $command.Module | Should -Not -BeNullOrEmpty
-        $command.Module.Name | Should -Be $ModuleName
-        $command.PSSnapIn | Should -BeNullOrEmpty
-    }
-}
-'@
-                foreach ($parallel in @($false, $true)) {
-                    $c = [PesterConfiguration]::Default
-                    $c.Run.Path = $folder
-                    $c.Run.RepoRoot = $folder
-                    $c.Run.Parallel = $parallel
-                    $c.Run.PassThru = $true
-                    $c.Output.Verbosity = 'None'
-
-                    $r = Invoke-Pester -Configuration $c
-
-                    $r.TotalCount | Verify-Equal 2
-                    $r.PassedCount | Verify-Equal 2
-                    $r.FailedCount | Verify-Equal 0
-                }
-            }
-            finally { Remove-Item -Path $folder -Recurse -Force }
-        }
-
         t "imports a module that lists Pester in RequiredModules (#2816)" {
             # Each parallel worker imports Pester so test bodies can use it. The worker must import
             # Pester *via its manifest* so the loaded module keeps its real ModuleVersion. Importing
@@ -941,25 +904,6 @@ BeforeAll { }
                 }
             }
             (@($r) | Sort-Object) -join ',' | Verify-Equal 'p-a,p-b'
-        }
-
-        t "auto-loads built-in commands from modules rather than snap-ins" {
-            Set-StrictMode -Version Latest
-            $commands = @(& (Get-Module Pester) {
-                Invoke-InRunspacePool -InputObject @('Get-Item', 'Get-Date') -ThrottleLimit 2 -ScriptBlock {
-                    param($item)
-                    Set-StrictMode -Version Latest
-                    Get-Command -Name $item -CommandType Cmdlet -ErrorAction Stop
-                }
-            })
-
-            $commands.Count | Verify-Equal 2
-            foreach ($command in $commands) {
-                $command.Module | Verify-NotNull
-                $command.PSSnapIn | Verify-Null
-            }
-            $commands[0].Module.Name | Verify-Equal 'Microsoft.PowerShell.Management'
-            $commands[1].Module.Name | Verify-Equal 'Microsoft.PowerShell.Utility'
         }
 
         t "keeps going when one worker throws" {

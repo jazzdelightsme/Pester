@@ -90,9 +90,6 @@ function Invoke-InRunspacePool {
     built on the runspace API that both editions have. One implementation for both keeps the two
     editions from drifting apart.
 
-    Workers use CreateDefault2 so built-in commands are auto-loaded from modules rather than
-    legacy snap-ins, preserving their CommandInfo.Module metadata as in a normal PowerShell session.
-
     The scriptblock is handed over as text and re-parsed inside the worker runspace, so nothing
     with runspace affinity crosses the boundary. Values reach the worker as named parameters
     rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live

@@ -373,10 +373,6 @@ $config.Run.ParallelThrottleLimit = 4   # default is the number of processors
 Invoke-Pester -Configuration $config
 ```
 
-Workers use `InitialSessionState.CreateDefault2()` so built-in commands load from modules,
-not legacy snap-ins. Commands such as `Get-Item` therefore retain their `CommandInfo.Module`
-metadata, matching a normal PowerShell session.
-
 Three things `ForEach-Object -Parallel` did that the pool does not, none of which you have to
 think about, but they explain the shape of the change:
 
